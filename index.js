@@ -203,14 +203,15 @@ async function fastifyStatic (fastify, opts) {
       encoding = getEncodingHeader(request.headers, checkedEncodings)
 
       if (encoding) {
+        const encodingExtension = '.' + getEncodingExtension(encoding)
         if (pathname.endsWith('/')) {
           pathname = findIndexFile(pathname, options.root, options.index)
           if (!pathname) {
             return reply.callNotFound()
           }
-          pathnameForSend = pathnameForSend + pathname + '.' + getEncodingExtension(encoding)
-        } else {
-          pathnameForSend = pathname + '.' + getEncodingExtension(encoding)
+          pathnameForSend = pathnameForSend + pathname + encodingExtension
+        } else if (!pathname.endsWith(encodingExtension)) {
+          pathnameForSend = pathname + encodingExtension
         }
       }
     }
@@ -255,7 +256,9 @@ async function fastifyStatic (fastify, opts) {
     } else {
       wrap.on('pipe', function () {
         if (encoding) {
-          reply.header('content-type', getContentType(pathname))
+          const encodingExtension = '.' + getEncodingExtension(encoding)
+          const cleanPathname = pathname.endsWith(encodingExtension) ? pathname.slice(0, -encodingExtension.length) : pathname
+          reply.header('content-type', getContentType(cleanPathname))
           reply.header('content-encoding', encoding)
         }
         reply.send(wrap)
